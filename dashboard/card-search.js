@@ -24,22 +24,34 @@
 
     function searchCards(query, cb) {
         const nrdbCards = r_cards.value;
-        const cardsData = nrdbCards['data'];
+        const cardsData = nrdbCards['records'];
 
-        const matches = cardsData.filter(card => card.title.match(new RegExp(query, "i")))
+        const matches = cardsData.filter(card => card.name.match(new RegExp(query, "i")))
         cb(matches);
     }
 
     function getCard(title) {
         const nrdbCards = r_cards.value;
-        const cardsData = nrdbCards['data'];
-        const matches = cardsData.filter(card => card.title.match(new RegExp("^" + title + "$", "i")))
+        const cardsData = nrdbCards['records'];
+        const matches = cardsData.filter(card => card.name.match(new RegExp("^" + title + "$", "i")))
 
         if (matches.length > 0) {
             return matches[matches.length - 1];
         } else {
             return false;
         }
+    }
+
+    function getImgFilename(pack_cards) {
+        var l5rimg_pattern = new RegExp("L5[a-zA-Z]*[0-9]*_[0-9]*\.jpg");
+        console.log(pack_cards);
+        const filenames = pack_cards.reduce((result, art) => {
+            if (art.image_url !== undefined && l5rimg_pattern.test(art.image_url)) {
+                result.push(art.image_url.match(l5rimg_pattern)[0]);
+            }
+            return result;
+        }, []);
+        return filenames;
     }
 
     function setLeft() {
@@ -95,7 +107,8 @@
         if (!result) {
             i_cardPreview.src = "../shared/runner-back.png";
         } else {
-            i_cardPreview.src = "../shared/netrunnercards/" + result['code'] + ".png";
+            const filename = getImgFilename(result['pack_cards']);
+            i_cardPreview.src = "../shared/frdbcards/" + filename;
         }
     });
 
@@ -112,7 +125,7 @@
         b_refreshDatabase.classList.remove('is-danger');
         b_refreshDatabase.classList.add('is-loading');
         b_refreshDatabase.disabled = true;
-        axios.get('https://netrunnerdb.com/api/2.0/public/cards')
+        axios.get('https://api.fiveringsdb.com/cards')
             .then(response => {
                 nodecg.Replicant('cards').value = response.data;
                 b_refreshDatabase.classList.remove('is-loading');
@@ -162,7 +175,7 @@
     autocomplete('#cardQuery', { hint: false, autoselect: true, appendTo: '#cardQueryAutocomplete' }, [
         {
             source: searchCards,
-            displayKey: 'title'
+            displayKey: 'name'
         }
     ]);
 })();
